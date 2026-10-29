@@ -4,10 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.db import Base, engine, get_db
 from app.ledger import models  # noqa: F401
+from app.ledger.router import router as accounts_router
 
 app = FastAPI(title="fin-blocks")
 
 Base.metadata.create_all(bind=engine)
+
+app.include_router(accounts_router)
 
 
 @app.get("/health")
