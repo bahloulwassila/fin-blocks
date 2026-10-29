@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 AccountType = Literal["asset", "liability", "equity", "revenue", "expense"]
+Direction = Literal["debit", "credit"]
 
 
 class AccountCreate(BaseModel):
@@ -30,3 +31,35 @@ class BalanceOut(BaseModel):
     currency: str
     balance_cents: int
     balance: str
+
+
+class EntryIn(BaseModel):
+    account_id: int
+    direction: Direction
+    amount_cents: int = Field(gt=0, le=10**15)
+
+
+class TransactionCreate(BaseModel):
+    description: str = Field(min_length=1, max_length=255)
+    occurred_at: AwareDatetime
+    entries: list[EntryIn] = Field(min_length=2)
+
+
+class EntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    account_id: int
+    direction: Direction
+    amount_cents: int
+
+
+class TransactionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    description: str
+    occurred_at: datetime
+    idempotency_key: str
+    created_at: datetime
+    entries: list[EntryOut]
