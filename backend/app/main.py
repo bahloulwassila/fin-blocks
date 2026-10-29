@@ -1,10 +1,13 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.db import get_db
+from app.db import Base, engine, get_db
+from app.ledger import models  # noqa: F401
 
 app = FastAPI(title="fin-blocks")
+
+Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health")
