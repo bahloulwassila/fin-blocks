@@ -13,3 +13,19 @@
 - Test A : INSERT d'une seule écriture de 500 en SQL → COMMIT refusé, 0 ligne restante
 - Test B : UPDATE et DELETE sur le ledger → refusés ("use a reversal")
 - Test C : transaction équilibrée via l'API → 201, l'API n'est pas affectée
+
+### [Ledger] Tests manuels de l'API (12 scénarios)
+| # | Scénario | Attendu | Obtenu |
+|---|----------|---------|--------|
+| 1 | Dépôt de 100 $ | 201 | 201 |
+| 2 | Soldes Banque / Dépôts | 100.00 / 100.00 | 500, puis 100.00 / 100.00 après correction |
+| 3 | Même requête, même clé | 200, pas de doublon | 200, solde inchangé |
+| 4 | Même clé, autre montant | 409 | 409 |
+| 5 | Débits ≠ crédits | 422 | 422 |
+| 6 | Une seule écriture | 422 | 422 |
+| 7 | Montant nul | 422 | 422 |
+| 8 | Compte inconnu | 422 | 422 |
+| 9 | Date sans fuseau | 422 | 422 |
+| 10 | CAD et EUR mélangés | 422 | 422 |
+| 11 | Inversion | 201, soldes à 0.00 | 201, 0.00 / 0.00 |
+| 12 | Deuxième inversion | 200, même id | 200, id 3 |
