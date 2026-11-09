@@ -54,6 +54,7 @@ def get_balance_cents(db: Session, account: Account) -> int:
             Entry.account_id == account.id
         )
     )
+    debit_minus_credit = int(debit_minus_credit)
     if account.type in DEBIT_NORMAL:
         return debit_minus_credit
     return -debit_minus_credit
