@@ -5,3 +5,10 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "BLE"]
 ignore = ["B008", "B904"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Avertissement de starlette sur httpx -> httpx2 : vient de la bibliotheque,
+# pas de notre code. A revoir lors d'une mise a jour de FastAPI.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]

@@ -29,3 +29,18 @@
 | 10 | CAD et EUR mélangés | 422 | 422 |
 | 11 | Inversion | 201, soldes à 0.00 | 201, 0.00 / 0.00 |
 | 12 | Deuxième inversion | 200, même id | 200, id 3 |
+
+cd ~/fin-blocks
+git add .
+git commit -m "Ledger: database-enforced balance and immutability"
+git push
+
+### [Tests] Suite automatique pytest : 29 tests
+- Base de test dédiée (port 5433), vidée avant chaque test (TRUNCATE, qui ne
+  déclenche pas les triggers d'immutabilité)
+- Couvre : les 12 scénarios manuels, les règles en base (tests A/B), les
+  contraintes CHECK, l'absence de clé d'idempotence, les 404
+- Le test des soldes sert aussi de non-régression pour le bug Decimal
+- Résultat : 29 passed en ~1 s
+- Warning starlette (httpx → httpx2) masqué de façon ciblée dans pyproject.toml :
+  il vient de la bibliothèque, pas de notre code ; migration à prévoir avec FastAPI
