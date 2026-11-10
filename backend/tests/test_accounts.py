@@ -47,3 +47,29 @@ def test_new_account_has_zero_balance(client, accounts):
 
 def test_unknown_account_returns_404(client):
     assert client.get("/accounts/999").status_code == 404
+
+
+def test_list_accounts_sorted_by_code(client, accounts):
+    r = client.get("/accounts")
+    assert r.status_code == 200
+    assert [a["code"] for a in r.json()] == ["1000", "2000"]
+
+
+def test_health_returns_503_when_database_is_down(client):
+    """Simule une base en panne en remplacant la session par une fausse."""
+    from sqlalchemy.exc import OperationalError
+
+    from app.db import get_db
+    from app.main import app
+
+    class BrokenSession:
+        def execute(self, *args, **kwargs):
+            raise OperationalError("SELECT 1", {}, Exception("database down"))
+
+    app.dependency_overrides[get_db] = lambda: BrokenSession()
+    try:
+        r = client.get("/health")
+    finally:
+        app.dependency_overrides.clear()
+    assert r.status_code == 503
+    assert r.json()["detail"] == "database unavailable"

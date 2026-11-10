@@ -12,3 +12,11 @@ pythonpath = ["."]
 # Avertissement de starlette sur httpx -> httpx2 : vient de la bibliotheque,
 # pas de notre code. A revoir lors d'une mise a jour de FastAPI.
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80

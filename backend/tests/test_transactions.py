@@ -159,3 +159,85 @@ def test_missing_idempotency_key_is_rejected(client, accounts):
 
 def test_reverse_unknown_transaction_returns_404(client):
     assert client.post("/transactions/999/reverse").status_code == 404
+
+
+def test_get_and_list_transactions(client, accounts):
+    tx = post_tx(client, tx_body(accounts["bank"], accounts["deposits"]), "depot-0001")
+    tx_id = tx.json()["id"]
+
+    assert client.get(f"/transactions/{tx_id}").json()["id"] == tx_id
+    assert client.get("/transactions/999").status_code == 404
+
+    r = client.post(
+        "/accounts",
+        json={"code": "4000", "name": "Revenus", "type": "revenue", "currency": "CAD"},
+    )
+    other_id = r.json()["id"]
+
+    assert len(client.get("/transactions").json()) == 1
+    by_bank = client.get("/transactions", params={"account_id": accounts["bank"]})
+    assert [t["id"] for t in by_bank.json()] == [tx_id]
+    by_other = client.get("/transactions", params={"account_id": other_id})
+    assert by_other.json() == []
+
+
+def test_inactive_account_is_rejected(client, accounts):
+    from sqlalchemy import text
+
+    from app.db import engine
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("UPDATE accounts SET is_active = false WHERE id = :id"),
+            {"id": accounts["deposits"]},
+        )
+    r = post_tx(client, tx_body(accounts["bank"], accounts["deposits"]), "test-inactif")
+    assert r.status_code == 422
+    assert "inactive" in r.json()["detail"]
+
+
+def test_concurrent_requests_with_same_key_do_not_duplicate(
+    client, accounts, monkeypatch
+):
+    """Simule deux requetes simultanees : la seconde ne voit pas encore la
+    premiere, tente d'enregistrer, et la contrainte unique de la base la
+    rattrape. Elle doit renvoyer la transaction existante, pas planter."""
+    from app.ledger import service
+
+    body = tx_body(accounts["bank"], accounts["deposits"])
+    first = post_tx(client, body, "race-key")
+
+    real_find = service.find_by_key
+    calls = {"n": 0}
+
+    def find_as_if_not_yet_committed(db, key):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return None
+        return real_find(db, key)
+
+    monkeypatch.setattr(service, "find_by_key", find_as_if_not_yet_committed)
+    second = post_tx(client, body, "race-key")
+
+    assert second.status_code == 200
+    assert second.json()["id"] == first.json()["id"]
+    assert balance(client, accounts["bank"]) == "100.00"
+
+
+def test_database_still_rejects_unbalanced_if_python_check_is_bypassed(
+    client, accounts, monkeypatch
+):
+    """Defense en profondeur : sans la validation Python, le trigger Postgres
+    refuse encore une transaction desequilibree, et rien n'est enregistre."""
+    import pytest
+    from sqlalchemy.exc import IntegrityError
+
+    from app.ledger import service
+
+    monkeypatch.setattr(service, "validate_entries", lambda db, data: None)
+
+    body = tx_body(accounts["bank"], accounts["deposits"], debit=10000, credit=9000)
+    with pytest.raises(IntegrityError, match="unbalanced"):
+        post_tx(client, body, "bypass-python-check")
+
+    assert balance(client, accounts["bank"]) == "0.00"

@@ -44,3 +44,12 @@ git push
 - Résultat : 29 passed en ~1 s
 - Warning starlette (httpx → httpx2) masqué de façon ciblée dans pyproject.toml :
   il vient de la bibliothèque, pas de notre code ; migration à prévoir avec FastAPI
+
+### [Tests] Couverture du code : de 93 % à 100 %
+- Mesure avec pytest-cov, seuil minimal de 80 % imposé (fail_under)
+- Les lignes manquantes ont révélé 6 cas non testés : liste des comptes, liste et
+  détail des transactions, compte désactivé, requêtes simultanées, /health en panne,
+  refus par la base quand la validation Python est contournée
+- Techniques : monkeypatch pour simuler une requête concurrente et contourner la
+  validation ; dependency_overrides pour simuler une base en panne
+- Résultat : 35 tests, 100 % de couverture, ~1 s

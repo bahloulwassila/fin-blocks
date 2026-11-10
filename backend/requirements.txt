@@ -6,3 +6,4 @@ alembic
 pytest
 httpx
 ruff
+pytest-cov

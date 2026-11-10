@@ -164,7 +164,6 @@ def create_transaction(
         if existing is None:
             raise
         return check_replay(existing, fingerprint), False
-
     return get_transaction(db, tx.id), True
 
 
